@@ -1,0 +1,94 @@
+# `scripts/make_and_merge_charts.py`
+Path: `scripts/make_and_merge_charts.py` — create the folder `scripts/` and paste this file:
+```python
+#!/usr/bin/env python3
+"""Generate missing charts and merge into updated PDF.
+
+Usage:
+    - Put your `superstore.csv` into `data/` (columns: Region, Sales, Customer Name)
+    - Run: python scripts/make_and_merge_charts.py
+Outputs:
+    - new_charts.pdf
+    - docs/Task2_Data_Analyst_Report_updated.pdf
+"""
+import os
+import sys
+import pandas as pd
+
+try:
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_pdf import PdfPages
+except Exception as e:
+    print("matplotlib required. Install via: pip install matplotlib pandas pypdf")
+    raise
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_PATH = os.path.join(REPO_ROOT, 'data', 'superstore.csv')
+ORIG_PDF = os.path.join(REPO_ROOT, 'docs', 'Task2_Data_Analyst_Report.pdf')
+NEW_PDF = os.path.join(REPO_ROOT, 'docs', 'Task2_Data_Analyst_Report_updated.pdf')
+TEMP_CHARTS = os.path.join(REPO_ROOT, 'new_charts.pdf')
+
+def main():
+    if not os.path.exists(DATA_PATH):
+        print(f"ERROR: CSV not found at {DATA_PATH}. Please place superstore.csv there.")
+        sys.exit(1)
+    df = pd.read_csv(DATA_PATH, low_memory=False)
+    # normalize column names
+    cols = {c.lower(): c for c in df.columns}
+    # try common variants
+    def find_col(possible):
+        for p in possible:
+            if p.lower() in cols:
+                return cols[p.lower()]
+        return None
+
+    region_col = find_col(['Region'])
+    sales_col = find_col(['Sales','Sale'])
+    cust_col = find_col(['Customer Name','Customer','CustomerName'])
+    if not all([region_col, sales_col, cust_col]):
+        print("ERROR: couldn't find required columns. Found columns:", list(df.columns))
+        sys.exit(1)
+
+    df[sales_col] = pd.to_numeric(df[sales_col], errors='coerce').fillna(0)
+
+    sales_region = df.groupby(region_col)[sales_col].sum().sort_values(ascending=False)
+    top_customers = df.groupby(cust_col)[sales_col].sum().nlargest(10).sort_values()
+
+    # create charts PDF
+    with PdfPages(TEMP_CHARTS) as pdf:
+        plt.figure(figsize=(8,5))
+        sales_region.plot(kind='bar')
+        plt.title('Sales by Region')
+        plt.xlabel('')
+        plt.ylabel('Sales')
+        plt.xticks(rotation=0)
+        plt.tight_layout()
+        pdf.savefig()
+        plt.close()
+
+        plt.figure(figsize=(8,6))
+        top_customers.plot(kind='barh')
+        plt.title('Top 10 Customers — Sales')
+        plt.xlabel('Sales')
+        plt.tight_layout()
+        pdf.savefig()
+        plt.close()
+
+    # merge PDFs
+    try:
+        from pypdf import PdfMerger
+    except Exception:
+        print('pypdf is required for PDF merging. Install with: pip install pypdf')
+        print('But the charts PDF was created at:', TEMP_CHARTS)
+        sys.exit(1)
+
+    merger = PdfMerger()
+    if os.path.exists(ORIG_PDF):
+        merger.append(ORIG_PDF)
+    merger.append(TEMP_CHARTS)
+    merger.write(NEW_PDF)
+    merger.close()
+    print('Created:', NEW_PDF)
+
+if __name__ == '__main__':
+    main()
