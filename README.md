@@ -1,8 +1,8 @@
 # Superstore Sales Analysis - Task 2
 
 **Repository contents:**  
-- `docs/Task2_Data_Analyst_Report.pdf` — your original PDF with the three graphs (Sales by Category, Profit by Sub-Category, Sales Trend Over Time). **(Place your existing PDF here.)**  
-- `data/` — place your `superstore.csv` here (not included).  
+- `Visualization.pdf` — PDF with the graphs (Sales by Category, Profit by Sub-Category, Sales Trend Over Time). 
+- `data/` — place your `superstore.csv`.  
 - `scripts/make_and_merge_charts.py` — Python script to generate the missing charts (Sales by Region, Top 10 Customers) and merge them into an updated PDF.  
 - `requirements.txt` — Python dependencies.  
 - `.gitignore` — recommended ignores.  
